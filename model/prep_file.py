@@ -53,7 +53,7 @@ import xsection_rivaq
 
 # ============ Read input parameter file for Gmesh and Sutra ========================================================
 #  -- returns dictionary with parameter values
-def read_input_file(input_parameter_file = 'user_param.txt'):
+def read_input_file(input_parameter_file = '../user_param.txt'):
     # init parameter dictionary 
     param = {}
     # -- Read input file and load cross-section parameters

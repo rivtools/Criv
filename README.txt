@@ -7,7 +7,7 @@ CRIV_app installation:
 
 Download CRIV_app as zip archive in your computer
 
-You need to install two programm in the ./bin directory of the CRIV_app directory:
+You need to install two programm in the ./bin directory of the CRIV_app directory depending on your OS:
 
 SUTRA : http://water.usgs.gov/nrp/gwsoftware/sutra.html
 
