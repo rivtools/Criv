@@ -246,7 +246,7 @@ def sutra_preproc(param,
     o = 0 # origin
 
     # Compute additional parameters
-    Kv = 1./ anis * Kh
+    Kv = float(anis) * Kh
     Km = 2.e-10
     
     # WHAT ???
@@ -719,6 +719,13 @@ def sutra_budget(param,
     idx1 = np.logical_and(node_file[:,1] == float(l/6), node_file[:,0] == float(e/2.))
     idx2 = np.logical_and(node_file[:,1] == float(l*(5./6)), node_file[:,0] == float(e/2.))
     idx3 =  np.logical_and(node_file[:,1] == float(l/2), node_file[:,0] == float(e/2.))
+    Hl = node_file[:,3][idx1]
+    Hr = node_file[:,3][idx2]
+    H = node_file[:,3][idx3]
+    Hr = float(Hr)
+    Ha = ( ((float(total_flow) * float(l/3.))/float((float(Kh)/1e-7)*float(e))) + float(Hl) + float(Hr)) /2
+    with open(head_aq,'w') as aquifer_head :
+	aquifer_head.write(str(Ha))
     
     if calcXfar > 0.: 
         calc = open(calc_xfar, "w+")
@@ -746,14 +753,7 @@ def sutra_budget(param,
 
 
 
-    Hl = node_file[:,3][idx1]
-    Hr = node_file[:,3][idx2]
-    H = node_file[:,3][idx3]
-    Hr = float(Hr)
-    Ha = ( ((float(total_flow) * (l/3))/float((Kh/1e-7)*e)) + float(Hl) + float(Hr)) /2
 
-    with open(head_aq,'w') as aquifer_head :
-	aquifer_head.write(str(Ha))
 
     with open(head_xfar,'w') as xfar_head :
 	xfar_head.write(str(Hr))

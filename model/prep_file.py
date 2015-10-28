@@ -158,6 +158,7 @@ def compute_CRIV(param, criv = './CRIV.csv', sutra_inp_table = 'param_table.csv'
 	param_output = criv
 	conceptual = open(param_output, "w+")
 	conceptual.close
+
 	with open(sutra_inp_table,'w') as output:
 		param_table = csv.writer(output, delimiter = ' ', lineterminator = '\n') #write table for each value of tested parameter 
 		for i in Param:
