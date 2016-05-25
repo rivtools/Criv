@@ -3,12 +3,9 @@
 /***************************************************************************
  prep_file.py
                                  CRIVapp
-
  This file gather functions which provide pre- and post-processing of the 
  numerical model which provide the "river-coefficient" and Xfar. 
-
  Grid of the numerical model SUTRA are provide by mesh genretor Gmsh
-
 			      -------------------
         begin                : 2015-07-20
         copyright            : (C) 2015 by Cousquer
@@ -21,7 +18,6 @@
  And Gmsh 2.8
      Copyright (C) 1997-2013 Christophe Geuzaine, Jean-Francois Remacle
      WEB : http://geuz.org/gmsh/
-
 /***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -43,6 +39,7 @@ import csv
 import sys
 from pylab import *
 import itertools
+import scipy
 from scipy import stats
 from itertools import islice
 from numpy import genfromtxt
@@ -61,17 +58,28 @@ def read_input_file(input_parameter_file = '../user_param.txt'):
 	    ct = float( input_parameter.readline().split()[1] )
 	    cw = float( input_parameter.readline().split()[1] )
 	    w = float( input_parameter.readline().split()[1] )
-	    d = float( input_parameter.readline().split()[1] )
-	    a = float( input_parameter.readline().split()[1] )
-	    m = float( input_parameter.readline().split()[1] )
-	    anis = float( input_parameter.readline().split()[1] )
-	    kh = float( input_parameter.readline().split()[1] )
-	    khb = float( input_parameter.readline().split()[1] )
+	    d = float( input_parameter.readline().split()[1] )	     
+	    a = float( input_parameter.readline().split()[1] )	    
+	    m = float( input_parameter.readline().split()[1] )	    
+	    anis = float( input_parameter.readline().split()[1] )	    
+	    kh = float( input_parameter.readline().split()[1] )	    
+	    khb = float( input_parameter.readline().split()[1] )	    
 	    dh = float( input_parameter.readline().split()[1] )
+	    ct_sd = float( input_parameter.readline().split()[1] )
+	    cw_sd = float( input_parameter.readline().split()[1] )
+	    w_sd = float( input_parameter.readline().split()[1] )
+	    d_sd = float( input_parameter.readline().split()[1] )
+	    a_sd = float( input_parameter.readline().split()[1] )
+	    m_sd = float( input_parameter.readline().split()[1] )
+	    anis_sd = float( input_parameter.readline().split()[1] )
+	    kh_sd = float( input_parameter.readline().split()[1] )
+	    khb_sd = float( input_parameter.readline().split()[1] )
 
     # fill dictionary with parameter values 
     param  = { 'ct' : ct , 'cw' : cw, 'w' : w, 'd' : d, 'a' : a, 'm': m,
-	    'anis' : anis, 'kh' : kh, 'khb' : khb, 'dh' : dh}
+	    'anis' : anis, 'kh' : kh, 'khb' : khb, 'dh' : dh, 'ct_sd' : ct_sd,
+	    'cw_sd' : cw_sd,'w_sd' : w_sd,'d_sd' : d_sd,'a_sd' : a_sd,
+	    'm_sd' : m_sd,'anis_sd' : anis_sd,'kh_sd' : kh_sd,'khb_sd' : khb_sd}
 
     return(param)
 
@@ -331,6 +339,188 @@ def compute_Xfar(param, xfar = './CRIV.csv', sutra_inp_table = 'param_table.csv'
 	xlabel(' Distance from river\'s center [m]', fontsize =17)
 	grid(True)
 	plt.plot(x, y, 'bo')
+	savefig(plot)
+	plt.close()
+
+
+#=================================================================================================
+#==== Calculate CRIV distribution ===================================
+
+
+def CRIV_distrib(param, criv = './CRIV.csv', param_distrib = './param_distrib2.csv', sutra_inp_table = 'param_table.csv',  
+	sutra_inp_file = 'param.txt', q_riv = 'river_budget.txt', aq_head = 'head_cell_aq.csv', criv_value = '../output/CRIV_distrib2.csv'):
+	#---  Geometry - User input
+	ct = param['ct'] # cell thickness [m]
+	cw = param['cw'] # cell width [m]
+	w = param['w'] # river width [m]
+	d = param['d'] # river depth [m]
+	a = param['a'] # bank angle [°]
+	m = param['m']#riverbed thikness [m]
+	s1 = 2.# (cw)/100. # general mesh element size [m]
+	s2 = 0.2#(cw)/100. # river mesh element size [m]
+
+	#---  Geometry - Model input
+	cw = cw * 3.
+	d = d + 1.
+	#---   Hydrodynamic properties 
+	anis = param['anis']#anisotropy = Kh/Kv
+	Kh = param['kh']  #Permeability in [L^2]  1m/s = 10^-7m^2      
+	Khb = param['khb'] #riverbed horizontal permeability [L^2]
+	Kh = Kh * 1e-7 
+	Khb = Khb * 1e-7 
+	if m == 0:
+		Khb = Kh
+
+	if m == 0:
+		m = ct/20. 
+
+	Kvb = Khb 
+	#----- Flow Boundary conditions 
+	h_riv = (ct - 1) # river head
+	h_left = np.arange(h_riv - 1, h_riv + 1, 1) # left head 
+	h_right = 38
+	#----- Calc Xfar (need to be 0 in this operation) 
+        calcXfar =  0
+        #----- Gen parameter distribution
+	# number of random generation
+        N = 500
+	ct_sd = param['ct_sd']
+	cw_sd = param['cw_sd']
+	w_sd = param['w_sd']
+	d_sd = param['d_sd']
+	a_sd = param['a_sd']
+	m_sd = param['m_sd']
+	anis_sd = param['anis_sd']
+	kh_sd = param['kh_sd']
+	khb_sd = param['khb_sd']
+	ct_distrib = np.random.normal(ct, ct_sd, N)
+	cw_distrib = np.random.normal(cw, cw_sd, N)
+	w_distrib = np.random.normal(w, w_sd, N)
+	d_distrib = np.random.normal(d, d_sd, N)
+	a_distrib = np.random.normal(a, a_sd, N)
+	m_distrib = np.random.normal(m, m_sd, N)
+	anis_distrib = np.random.normal(np.log10(anis), np.log10(anis_sd), N)
+	anis_distrib = 10**(anis_distrib)
+	kh_distrib = np.random.normal(np.log10(Kh), np.log10(kh_sd), N)
+	kh_distrib = 10**(kh_distrib)
+	khb_distrib = np.random.normal(np.log10(Khb), np.log10(khb_sd), N)
+	khb_distrib = 10**(khb_distrib)
+	output = np.column_stack((ct_distrib.flatten(),cw_distrib.flatten(),w_distrib.flatten()
+	                          ,d_distrib.flatten(),a_distrib.flatten(),m_distrib.flatten()
+				  ,anis_distrib.flatten(),kh_distrib.flatten(),khb_distrib.flatten()))
+	np.savetxt(param_distrib,output,delimiter=' ', fmt='%1.1e')
+        #tested parameter
+	Param = h_left     
+	#output file
+	param_output = criv
+	conceptual = open(param_output, "w+")
+	conceptual.close
+	ccriv = open(criv_value, "w+")
+	ccriv.close
+	with open(param_distrib,'r') as param_gen:  
+	    param_gen = csv.reader(param_gen, delimiter = ' ')
+	    for row in param_gen:
+		try:
+		    with open(sutra_inp_table,'w') as output:
+			    param_table = csv.writer(output, delimiter = ' ', lineterminator = '\n') #write table for each value of tested parameter 
+			    for i in Param:
+				    param_table.writerow((\
+				    round(float(row[0]),0), round(float(row[1])*3,0), round(float(row[2]),0), round(float(row[3])+1,0),
+				    round(float(row[4]),0), round(float(row[5]),0), float(s1), float(s2),
+				    float(row[6]), float(row[7]), float(row[8]),float(row[8]),
+				    float(i),float(h_riv),float(h_right),calcXfar )) 
+
+		    with open(sutra_inp_table) as csv_data:
+			    reader = csv.reader(csv_data)
+			    rows = [row for row in reader if row]
+			    for row in rows:
+				    row = row
+				    lis=[x.split() for x in row]
+				    with open(sutra_inp_file,'w') as output:
+					    for x in zip(*lis):
+						    for y in x:
+							    output.write(y+'\n')
+				    xsection_rivaq.gen_mesh()
+				    break
+			    for row in rows:
+				    row = row
+				    lis=[x.split() for x in row]
+				    with open(sutra_inp_file,'w') as output:
+					    for x in zip(*lis):
+						    for y in x:
+							    output.write(y+'\n')
+				    xsection_rivaq.run() 
+				    with open(param_output,'a') as output:
+					    with open(sutra_inp_file,'r') as input_parameter:
+						    ct = float( input_parameter.readline().split()[0] )
+						    cw = float( input_parameter.readline().split()[0] )
+						    w = float( input_parameter.readline().split()[0] )
+						    d = float( input_parameter.readline().split()[0] )
+						    a = float( input_parameter.readline().split()[0] )
+						    m = float( input_parameter.readline().split()[0] )
+						    s1 = float( input_parameter.readline().split()[0] )
+						    s2 = float( input_parameter.readline().split()[0] )
+						    anis = float( input_parameter.readline().split()[0] )
+						    Kh = float( input_parameter.readline().split()[0] )
+						    Khb = float( input_parameter.readline().split()[0] )
+						    Kvb = float( input_parameter.readline().split()[0] )
+						    h_left = float( input_parameter.readline().split()[0] )
+						    h_riv = float( input_parameter.readline().split()[0] )
+						    h_right = float( input_parameter.readline().split()[0] )
+					    parameter = csv.writer(output, delimiter = ' ', lineterminator = '\n')
+					    flow = np.loadtxt(q_riv)
+					    TOTAL_FLOW = float(flow)
+					    cell_head = np.loadtxt(aq_head)
+					    cell_head = float(cell_head)
+					    parameter.writerow((TOTAL_FLOW, cell_head-h_riv))
+			    data1 = np.genfromtxt(criv, dtype=[('Q',float),('param',float)], delimiter = ' ')
+			    Q = data1['Q']
+			    param = data1['param']
+			    #stat
+			    x = param[:,np.newaxis]
+			    y= Q
+			    a, _, _, _ = np.linalg.lstsq(x, y)
+			    CRIV = (float(-a))
+			    criv_file = open(criv_value, "a")
+			    criv_file.write(''+str(CRIV)+'\n')
+			    criv_file.close()
+		except:
+		    print('error')
+
+
+#=================================================================================================
+#==== represent CRIV distribution ===================================
+
+
+def CRIV_dist_plot(param,param_distrib = './param_distrib2.csv', criv_value = '../output/CRIV_distrib2.csv',plot = '../output/plot_anis_dist.png'):
+
+	data1 = np.genfromtxt(param_distrib, dtype=[('ct',float),('cw',float),('w',float),
+	                                            ('d',float),('a',float),('m',float),('anis',float),
+						    ('kh',float),('khb',float)], delimiter = ' ')
+	data2 = np.genfromtxt(criv_value, dtype=[('criv',float)], delimiter = ' ')
+	ct = data1['ct']
+	w = data1['w']
+	d = data1['d']
+	d = d-1
+	a = data1['a']
+	m = data1['m']
+	m = abs(m)
+	anis = data1['anis']
+	anis = np.log10(anis)
+	kh = data1['kh']
+	kh = kh*1e7
+	kh = np.log10(kh)
+	khb = data1['khb']
+	khb = khb*1e7
+	khb = np.log10(khb)
+	criv = data2['criv']
+	criv =criv*0.7055
+	criv = np.log10(criv)
+	criv_hist = scipy.stats.histogram(d,numbins=100)
+	ylabel('Frequency', fontsize =17 )
+	xlabel('log(anis)', fontsize =17, style='italic')
+	grid(True)
+	plt.hist(anis, 8)
 	savefig(plot)
 	plt.close()
 
