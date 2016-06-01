@@ -11,7 +11,7 @@
         copyright            : (C) 2015 by Cousquer
         email                : yohann.cousquer@ensegid.fr
  ***************************************************************************/
- This plugin use SUTRA VERSION 2.2  
+ This plugin uses SUTRA VERSION 2.2  
      Copyright (C) 1984-2010  A.M. Provost & C.I. Voss
      WEB : http://water.usgs.gov/nrp/gwsoftware/sutra.html
  

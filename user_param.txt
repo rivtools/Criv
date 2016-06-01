@@ -6,5 +6,5 @@ bank_angle[°] 90
 riverbed_thickness[L] 0
 anisotropy[-] 0.1
 aquifer_hydraulic_conductivity[L/T] 1e-3
-reverbed_hydraulic_conductivity[L/T] 1e-3
+riverbed_hydraulic_conductivity[L/T] 1e-3
 maximum_gw-sw_head_gradient[%] 2
