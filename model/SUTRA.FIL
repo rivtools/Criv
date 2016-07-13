@@ -1,8 +1,0 @@
-INP 50 sutra_model.inp
-ICS 55 sutra_model.ics
-LST 60 sutra_model.lst
-RST 66 sutra_model.rst
-NOD 30 sutra_model.nod
-ELE 40 sutra_model.ele
-OBS 70 sutra_model.obs
-SMY 80 sutra_model.smy
