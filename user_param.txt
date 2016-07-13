@@ -17,4 +17,3 @@ SD_riverbed_thickness[L] 0.1
 SD_anisotropy[-] 2 
 SD_aquifer_hydraulic_conductivity[L/T] 5
 SD_reverbed_hydraulic_conductivity[L/T] 5 
-
