@@ -135,8 +135,8 @@ def compute_CRIV(param, criv = './CRIV.csv', sutra_inp_table = 'param_table.csv'
 	d = param['d'] # river depth [m]
 	a = param['a'] # bank angle [°]
 	m = param['m']#riverbed thikness [m]
-	s1 = 1.# (cw)/100. # general mesh element size [m]
-	s2 = 0.2#(cw)/100. # river mesh element size [m]
+	s1 = 2.# (cw)/100. # general mesh element size [m]
+	s2 = 1.#(cw)/100. # river mesh element size [m]
 
 	#---  Geometry - Model input
 	cw = cw * 3.
