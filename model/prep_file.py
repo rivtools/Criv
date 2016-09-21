@@ -514,7 +514,6 @@ def CRIV_dist_plot(param,param_distrib = './param_distrib2.csv', criv_value = '.
 	khb = khb*1e7
 	khb = np.log10(khb)
 	criv = data2['criv']
-	criv =criv*0.7055
 	criv = np.log10(criv)
 	criv_hist = scipy.stats.histogram(d,numbins=100)
 	ylabel('Frequency', fontsize =17 )
