@@ -1,10 +1,11 @@
-FOR MORE INFORMATION 
-
 Criv is based on the Python language, version 2.7
-
 To install Python 2.7 : https://www.python.org/
 
-CRIV_app installation: 
+## DOCUMENTATION
+
+A complete Criv code documentation is available at https://github.com/rivtools/Criv/wiki
+
+## Installation: 
 
 Download CRIV_app as a zip archive or clone it with git.
 
@@ -15,7 +16,7 @@ SUTRA : http://water.usgs.gov/nrp/gwsoftware/sutra.html
 
 Gmsh : http://geuz.org/gmsh/#Download
 
-Launch the app:
+## Launch the app
 
 You need to set your parameters in the ./model/user_param.txt text file
 
