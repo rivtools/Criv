@@ -66,20 +66,19 @@ def read_input_file(input_parameter_file = 'param.txt'):
 	    Kvb = float( input_parameter.readline().split()[0] )
 	    h_left = float( input_parameter.readline().split()[0] )
 	    h_riv = float( input_parameter.readline().split()[0] )
-	    h_right = float( input_parameter.readline().split()[0] )
 	    calcXfar = float(input_parameter.readline().split()[0] )
 
 
     # fill dictionary with parameter values 
     param  = { 'e' : e , 'l' : l, 'L' : L, 'P' : P, 's1' : s1, 's2': s2,
 	    'a' : a, 'b' : b, 'anis' : anis, 'Kh' : Kh, 'Khb' : Khb, 'Kvb' : Kvb,
-	    'h_left' : h_left, 'h_riv' : h_riv, 'h_right' : h_right, 'calcXfar' : calcXfar}
+	    'h_left' : h_left, 'h_riv' : h_riv, 'calcXfar' : calcXfar}
 
     return(param)
 
 
 # ============= Create finite element mesh with Gmesh ============================================================
-def build_mesh(param, geo_file = 'x_section.geo', mesh_file = 'x_section.msh', gmesh = '../bin/gmsh' ):
+def build_mesh(param, geo_file = 'x_section.geo', mesh_file = 'x_section.msh', gmesh = os.path.join('..','bin','gmsh') ):
     # param : dictionary with 2D stream-aquifer cross-section characteristics
     # geo_file    : intermediate instruction file read by Gmesh executable.
     # output_file : finite element mesh, to be read by SUTRA.
@@ -192,7 +191,10 @@ def build_mesh(param, geo_file = 'x_section.geo', mesh_file = 'x_section.msh', g
     geo.close()
 
     # --- Call Gmesh to build mesh 
-    call([gmesh,"-2", geo_file,"-o",mesh_file])
+    print('Running gmsh...')
+    output_file = open("gmsh_output","w")
+    call([gmesh,"-2", geo_file,"-o",mesh_file],stdout=output_file)
+    output_file.close()
 
 
 # ======== Write files input files for SUTRA ============================================================
@@ -522,8 +524,7 @@ def sutra_preproc(param,
     with open(elements_file,'rb') as csvfile:
 	    element = [row for row in csv.reader(csvfile, delimiter = ' ')]
 	    element = np.array(element)
-	    nbegin = element[0,0]
-	    nbegin = int(nbegin)
+	    nbegin = int(element[0,0])
 
     with open(elements_file,'rb') as csvfile:
 	    element = csv.reader(csvfile, delimiter = ' ')
@@ -648,8 +649,11 @@ def sutra_preproc(param,
     SUTRA.close()
 
 # === RUN SUTRA =========================================================================
-def sutra_run(sutra = '../bin/sutra'):
-    call([sutra])
+def sutra_run(sutra = os.path.join('..','bin','sutra')):
+    print('Running SUTRA ...')
+    output_file = open("sutra_output","w")    
+    call([sutra],stdout=output_file)
+    output_file.close()
 
 
 # ==== BUDGET ===========================================================================
@@ -766,7 +770,8 @@ def sutra_budget(param,
 
 
 # === Run model ================================================================================ 
-def gen_mesh(input_parameter_file = 'param.txt', river_budget_file = 'river_budget.txt', mesh=True, gmesh = '../bin/gmsh', sutra = '../bin/sutra'):
+def gen_mesh(input_parameter_file = 'param.txt', river_budget_file = 'river_budget.txt', mesh=True, 
+	gmesh = os.path.join('..','bin','gmsh'), sutra = os.path.join('..','bin','sutra') ):
 
     # Read cross-section parameter file
     param = read_input_file(input_parameter_file)  
@@ -776,7 +781,8 @@ def gen_mesh(input_parameter_file = 'param.txt', river_budget_file = 'river_budg
 	# Build mesh with Gmesh
 	build_mesh(param, gmesh = gmesh)
 
-def run(input_parameter_file = 'param.txt', river_budget_file = 'river_budget.txt', mesh=True, gmesh = '../bin/gmsh', sutra = '../bin/sutra'):
+def run(input_parameter_file = 'param.txt', river_budget_file = 'river_budget.txt', mesh=True, 
+	gmesh = os.path.join('..','bin','gmsh'), sutra = os.path.join('..','bin','sutra')):
 
     # Read cross-section parameter file
     param = read_input_file(input_parameter_file)  
@@ -785,7 +791,7 @@ def run(input_parameter_file = 'param.txt', river_budget_file = 'river_budget.tx
     sutra_preproc(param)
 
     # Run SUTRA
-    sutra_run()
+    sutra_run(sutra)
 
     # Compute budget
     sutra_budget(param, river_budget_file = river_budget_file)

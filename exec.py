@@ -29,4 +29,3 @@ prep_file.CRIV_distrib(param)
 #plot CRIV and parameter distribution
 prep_file.CRIV_dist_plot(param)
 
-

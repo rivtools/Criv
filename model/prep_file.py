@@ -37,7 +37,7 @@ import os
 import matplotlib.pyplot as plt
 import csv
 import sys
-from pylab import *
+from pylab import * 
 import itertools
 import scipy
 from scipy import stats
@@ -50,7 +50,7 @@ import xsection_rivaq
 
 # ============ Read input parameter file for Gmesh and Sutra ========================================================
 #  -- returns dictionary with parameter values
-def read_input_file(input_parameter_file = '../user_param.txt'):
+def read_input_file(input_parameter_file = os.path.join('..','user_param.txt')):
     # init parameter dictionary 
     param = {}
     # -- Read input file and load cross-section parameters
@@ -87,7 +87,7 @@ def read_input_file(input_parameter_file = '../user_param.txt'):
 #=================================================================================================
 #==== CREATE GEOMETRY ====================================
 
-def build_model(param, model_shape = '../output/model.png'):
+def build_model(param, model_shape = os.path.join('..','output','model.png')):
 	#---  Geometry - User input
 	ct = param['ct'] # cell thickness [m]
 	cw = param['cw'] # cell width [m]
@@ -126,7 +126,7 @@ def build_model(param, model_shape = '../output/model.png'):
 #=================================================================================================
 #==== Compute CRIV ===================================
 
-def compute_CRIV(param, criv = './CRIV.csv', sutra_inp_table = 'param_table.csv',  
+def compute_CRIV(param, criv = 'CRIV.csv', sutra_inp_table = 'param_table.csv',  
 	sutra_inp_file = 'param.txt', q_riv = 'river_budget.txt', aq_head = 'head_cell_aq.csv'):
 	#---  Geometry - User input
 	ct = param['ct'] # cell thickness [m]
@@ -135,29 +135,28 @@ def compute_CRIV(param, criv = './CRIV.csv', sutra_inp_table = 'param_table.csv'
 	d = param['d'] # river depth [m]
 	a = param['a'] # bank angle [°]
 	m = param['m']#riverbed thikness [m]
-	s1 = 2.# (cw)/100. # general mesh element size [m]
-	s2 = 1.#(cw)/100. # river mesh element size [m]
+	s1 = min( ct/30., cw/30.) # general mesh element size [m]
+	s2 = max(0.1, min( m/5., cw/20.)) #(cw)/100. # river mesh element size [m]
 
 	#---  Geometry - Model input
 	cw = cw * 3.
 	d = d + 1.
 	#---   Hydrodynamic properties 
 	anis = param['anis']#anisotropy = Kh/Kv
-	Kh = param['kh']  #Permeability in [L^2]  1m/s = 10^-7m^2      
-	Khb = param['khb'] #riverbed horizontal permeability [L^2]
-	Kh = Kh * 1e-7 
-	Khb = Khb * 1e-7 
+	Kh = param['kh']*1e-7  #Permeability in [m^2] (k [m^2] = 10^(-7) * K [m/s])    
+	Khb = param['khb']*1e-7 #riverbed horizontal permeability [m^2]  (k [m^2] = 10^(-7) * K [m/s])
 	if m == 0:
 		Khb = Kh
 
-	if m == 0:
-		m = ct/20. 
+	if m == 0: # no streambed
+	    	# set streambed thickness to a minimum value.
+		# will have no effect since in this case we set Kvb = Kh
+		m = ct/20.   
 
 	Kvb = Khb 
 	#----- Flow Boundary conditions 
 	h_riv = (ct - 1) # river head
 	h_left = np.arange(h_riv - 5, h_riv + 5.5, 0.5) # left head 
-	h_right = 38
 	#----- Calc Xfar (need to be 0 in this operation) 
         calcXfar =  0
 	#tested parameter
@@ -168,13 +167,14 @@ def compute_CRIV(param, criv = './CRIV.csv', sutra_inp_table = 'param_table.csv'
 	conceptual.close
 
 	with open(sutra_inp_table,'w') as output:
-		param_table = csv.writer(output, delimiter = ' ', lineterminator = '\n') #write table for each value of tested parameter 
+		#write table for each value of tested parameter
+		param_table = csv.writer(output, delimiter = ' ', lineterminator = '\n')  
 		for i in Param:
 			param_table.writerow((\
 			float(ct), float(cw), float(w), float(d),
 			float(a), float(m), float(s1), float(s2),
 			float(anis), float(Kh), float(Khb), float(Kvb),
-			float(i),float(h_riv),float(h_right),calcXfar )) 
+			float(i),float(h_riv),calcXfar )) 
 
 	with open(sutra_inp_table) as csv_data:
 		reader = csv.reader(csv_data)
@@ -212,7 +212,6 @@ def compute_CRIV(param, criv = './CRIV.csv', sutra_inp_table = 'param_table.csv'
 					Kvb = float( input_parameter.readline().split()[0] )
 					h_left = float( input_parameter.readline().split()[0] )
 					h_riv = float( input_parameter.readline().split()[0] )
-					h_right = float( input_parameter.readline().split()[0] )
 				parameter = csv.writer(output, delimiter = ' ', lineterminator = '\n')
 				flow = np.loadtxt(q_riv)
 				TOTAL_FLOW = float(flow)
@@ -225,7 +224,7 @@ def compute_CRIV(param, criv = './CRIV.csv', sutra_inp_table = 'param_table.csv'
 #=================================================================================================
 #==== Plot regression line ===================================
 
-def plot_CRIV(criv = './CRIV.csv', plot = '../output/regression_line.png'):
+def plot_CRIV(criv = 'CRIV.csv', plot = os.path.join('..','output','regression_line.png')):
 	data = np.genfromtxt(criv, dtype=[('Q',float),('param',float)], delimiter = ' ')
 	Q = data['Q']
 	param = data['param']
@@ -245,7 +244,8 @@ def plot_CRIV(criv = './CRIV.csv', plot = '../output/regression_line.png'):
 #=================================================================================================
 #==== Get CRIV ===================================
 
-def write_CRIV(param, criv = './CRIV.csv', criv_value = '../output/CRIV_value.txt', R2_value = '../output/R2_value.txt'):
+def write_CRIV(param, criv = 'CRIV.csv', criv_value = os.path.join('..','output','CRIV_value.txt'), 
+	R2_value = os.path.join('..','output','R2_value.txt')) :
 	Kh = param['kh']        
 	data1 = np.genfromtxt(criv, dtype=[('Q',float),('param',float)], delimiter = ' ')
 	Q = data1['Q']
@@ -272,7 +272,8 @@ def write_CRIV(param, criv = './CRIV.csv', criv_value = '../output/CRIV_value.tx
 #==== Calculate Xfar ===================================
 
 def compute_Xfar(param, xfar = './CRIV.csv', sutra_inp_table = 'param_table.csv',  
-	sutra_inp_file = 'param.txt', q_riv = 'river_budget.txt', aq_head = 'head_cell_aq.csv', calc_xfar = 'xfar.csv', plot = '../output/plot_xfar.png'):
+	sutra_inp_file = 'param.txt', q_riv = 'river_budget.txt', aq_head = 'head_cell_aq.csv', 
+	calc_xfar = 'xfar.csv', plot = os.path.join('..','output','plot_xfar.png')) :
 	#---  Geometry - User input
 	ct = param['ct'] # cell thickness [m]
 	w = param['w'] # river width [m]
@@ -282,12 +283,11 @@ def compute_Xfar(param, xfar = './CRIV.csv', sutra_inp_table = 'param_table.csv'
 	dh = param['dh']
 
 	#---  Geometry - Model input
-	cw = w*10 # cell width [m]
-	cw = cw * 3.
+	mw = w*30 # model width is 30 times river width [m]
 	d = d + 1.
 	#---mesh element size [m]
-	s1 = 1.#(cw)/100. # general mesh element size [m]
-	s2 = 0.2#(cw)/100. # river mesh element size [m]
+	s1 = 1. # general mesh element size [m]
+	s2 = 0.2  # river mesh element size [m]
 	#---   Hydrodynamic properties 
 	anis = param['anis']#anisotropy = Kh/Kv
 	Kh = param['kh']  #Permeability in [L^2]  1m/s = 10^-7m^2      
@@ -302,10 +302,9 @@ def compute_Xfar(param, xfar = './CRIV.csv', sutra_inp_table = 'param_table.csv'
 
 	Kvb = Khb 
 	#----- Flow Boundary conditions 
-        r4 = (cw/2) - (w/2)
+        r4 = (mw/2) - (w/2)
 	h_riv = (ct - 1) # river head
 	h_left = h_riv + (r4 * (dh/100.)) #  
-	h_right = h_left
 	#----- Calc Xfar (need to be 1 in this operation) 
         calcXfar =  1.
 
@@ -313,10 +312,10 @@ def compute_Xfar(param, xfar = './CRIV.csv', sutra_inp_table = 'param_table.csv'
 	with open(sutra_inp_table,'w') as output:
 		param_table = csv.writer(output, delimiter = ' ', lineterminator = '\n') #write table for each value of tested parameter 
 		param_table.writerow((\
-		float(ct), float(cw), float(w), float(d),
+		float(ct), float(mw), float(w), float(d),
 		float(a), float(m), float(s1), float(s2),
 		float(anis), float(Kh), float(Khb), float(Kvb),
-		float(h_left),float(h_riv),float(h_right), float(calcXfar) ))
+		float(h_left),float(h_riv), float(calcXfar) ))
 	with open(sutra_inp_table) as csv_data:
 		reader = csv.reader(csv_data)
 		rows = [row for row in reader if row]
@@ -333,7 +332,7 @@ def compute_Xfar(param, xfar = './CRIV.csv', sutra_inp_table = 'param_table.csv'
 	data = np.genfromtxt(calc_xfar, dtype=[('d',float),('comp_x',float)], delimiter = ' ')
 	d = data['d']
 	comp_x = data['comp_x']
-	x = (d)*(cw/2)
+	x = d*(mw/2)
 	y = comp_x
 	ylabel(' x component [%]', fontsize =17 )
 	xlabel(' Distance from river\'s center [m]', fontsize =17)
@@ -347,8 +346,9 @@ def compute_Xfar(param, xfar = './CRIV.csv', sutra_inp_table = 'param_table.csv'
 #==== Calculate CRIV distribution ===================================
 
 
-def CRIV_distrib(param, criv = './CRIV.csv', param_distrib = './param_distrib2.csv', sutra_inp_table = 'param_table.csv',  
-	sutra_inp_file = 'param.txt', q_riv = 'river_budget.txt', aq_head = 'head_cell_aq.csv', criv_value = '../output/CRIV_distrib2.csv'):
+def CRIV_distrib(param, criv = 'CRIV.csv', param_distrib = 'param_distrib.csv', sutra_inp_table = 'param_table.csv',  
+	sutra_inp_file = 'param.txt', q_riv = 'river_budget.txt', aq_head = 'head_cell_aq.csv', 
+	criv_value = os.path.join('output','CRIV_distrib.csv')):
 	#---  Geometry - User input
 	ct = param['ct'] # cell thickness [m]
 	cw = param['cw'] # cell width [m]
@@ -378,7 +378,6 @@ def CRIV_distrib(param, criv = './CRIV.csv', param_distrib = './param_distrib2.c
 	#----- Flow Boundary conditions 
 	h_riv = (ct - 1) # river head
 	h_left = np.arange(h_riv - 1, h_riv + 1, 1) # left head 
-	h_right = 38
 	#----- Calc Xfar (need to be 0 in this operation) 
         calcXfar =  0
         #----- Gen parameter distribution
@@ -415,20 +414,22 @@ def CRIV_distrib(param, criv = './CRIV.csv', param_distrib = './param_distrib2.c
 	param_output = criv
 	conceptual = open(param_output, "w+")
 	conceptual.close
-	ccriv = open(criv_value, "w+")
-	ccriv.close
+	# clear file if existing
+	#ccriv = open(criv_value, "w+")
+	#ccriv.close
 	with open(param_distrib,'r') as param_gen:  
 	    param_gen = csv.reader(param_gen, delimiter = ' ')
 	    for row in param_gen:
 		try:
 		    with open(sutra_inp_table,'w') as output:
-			    param_table = csv.writer(output, delimiter = ' ', lineterminator = '\n') #write table for each value of tested parameter 
+			    #write table for each value of tested parameter
+			    param_table = csv.writer(output, delimiter = ' ', lineterminator = '\n')  
 			    for i in Param:
 				    param_table.writerow((\
 				    round(float(row[0]),0), round(float(row[1])*3,0), round(float(row[2]),0), round(float(row[3])+1,0),
 				    round(float(row[4]),0), round(float(row[5]),0), float(s1), float(s2),
 				    float(row[6]), float(row[7]), float(row[8]),float(row[8]),
-				    float(i),float(h_riv),float(h_right),calcXfar )) 
+				    float(i),float(h_riv),calcXfar )) 
 
 		    with open(sutra_inp_table) as csv_data:
 			    reader = csv.reader(csv_data)
@@ -466,7 +467,6 @@ def CRIV_distrib(param, criv = './CRIV.csv', param_distrib = './param_distrib2.c
 						    Kvb = float( input_parameter.readline().split()[0] )
 						    h_left = float( input_parameter.readline().split()[0] )
 						    h_riv = float( input_parameter.readline().split()[0] )
-						    h_right = float( input_parameter.readline().split()[0] )
 					    parameter = csv.writer(output, delimiter = ' ', lineterminator = '\n')
 					    flow = np.loadtxt(q_riv)
 					    TOTAL_FLOW = float(flow)
@@ -492,7 +492,9 @@ def CRIV_distrib(param, criv = './CRIV.csv', param_distrib = './param_distrib2.c
 #==== represent CRIV distribution ===================================
 
 
-def CRIV_dist_plot(param,param_distrib = './param_distrib2.csv', criv_value = '../output/CRIV_distrib2.csv',plot = '../output/plot_anis_dist.png'):
+def CRIV_dist_plot(param,param_distrib = 'param_distrib.csv',
+	criv_value = os.path.join('..','output','CRIV_distrib.csv'),
+	plot = os.path.join('..','output','plot_anis_dist.png') ) :
 
 	data1 = np.genfromtxt(param_distrib, dtype=[('ct',float),('cw',float),('w',float),
 	                                            ('d',float),('a',float),('m',float),('anis',float),
