@@ -1,3 +1,5 @@
+FOR MORE INFORMATION 
+
 Criv is based on the Python language, version 2.7
 
 To install Python 2.7 : https://www.python.org/
